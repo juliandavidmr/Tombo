@@ -43,12 +43,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '800',
+    marginBottom: 4,
   },
   description: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: '600',
   },
 });
 
