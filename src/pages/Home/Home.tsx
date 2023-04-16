@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import HomeCard, {THomeCardProps} from '../../components/HomeCard';
 import RulesPage from '../RulesPage';
@@ -88,7 +88,7 @@ const Home: React.FC<THomeProps> = ({navigation}) => {
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    marginTop: 72,
+    marginTop: 48,
     paddingHorizontal: 16,
   },
   containerFlex: {

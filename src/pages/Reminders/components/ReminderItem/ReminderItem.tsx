@@ -4,7 +4,7 @@ import moment from 'moment';
 
 export type TReminderItemProps = {
   title: string;
-  expirationDate: Date;
+  expirationDate?: Date;
   updatedAt?: Date;
   onPress?: () => void;
 };
@@ -19,7 +19,8 @@ const ReminderItem: React.FC<TReminderItemProps> = ({
 
   useEffect(() => {
     if (expirationDate) {
-      const days = moment(expirationDate).diff(moment(), 'days');
+      // +1 because moment.diff() returns the difference minus one day
+      const days = moment(expirationDate).diff(moment(), 'days') + 1;
       setRemainingDays(days);
     }
   }, [expirationDate]);

@@ -1,89 +1,108 @@
-import React, {useCallback, useState} from 'react';
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  Modal,
-  Alert,
-  Pressable,
-} from 'react-native';
-import {Text} from 'native-base';
+import React, {useCallback, useEffect, useState} from 'react';
+import {StyleSheet, View, FlatList, Text} from 'react-native';
 import moment from 'moment';
 
-import ReminderItem, {
-  TReminderItemProps,
-} from './components/ReminderItem/ReminderItem';
-import reminderItem from './components/ReminderItem/ReminderItem';
+import ReminderItem from './components/ReminderItem/ReminderItem';
+import ModalEditReminder from './components/ModalEditReminder';
+import {REMINDERS, TReminder} from './constants';
+import useInternStorage from '../../hooks/useInternStorage';
 
 const Reminders = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedReminder, setSelectedReminder] =
-    useState<TReminderItemProps>();
+  const [selectedReminder, setSelectedReminder] = useState<TReminder>();
+  const [reminders, setReminders] = useState<TReminder[]>([]);
+  const {storeData, getData} = useInternStorage();
+
+  const closeReminderModal = useCallback(() => {
+    setModalVisible(false);
+    setSelectedReminder(undefined);
+  }, []);
 
   const handleReminderPress = useCallback(
-    (reminder: TReminderItemProps) => () => {
+    (reminder: TReminder) => () => {
       setSelectedReminder(reminder);
       setModalVisible(true);
     },
     [],
   );
 
+  const refreshReminders = useCallback(async () => {
+    const newReminders: TReminder[] = [];
+
+    for await (const reminder of REMINDERS) {
+      const dateStr = await getData<string>(reminder.storageKey);
+      const dateMoment = moment(dateStr, 'DD/MM/YYYY HH:mm');
+
+      if (!dateStr || !dateMoment.isValid()) {
+        newReminders.push(reminder);
+        continue;
+      }
+
+      newReminders.push({
+        ...reminder,
+        expirationDate: dateMoment.toDate(),
+      });
+    }
+
+    setReminders(newReminders);
+  }, [getData]);
+
+  const handleReminderConfirm = useCallback(
+    /**
+     * @param date If undefined, the reminder will be reset
+     */
+    async (date?: Date) => {
+      if (selectedReminder) {
+        let stringDateTime = '';
+
+        if (date) {
+          stringDateTime = moment(date).format('DD/MM/YYYY HH:mm');
+        }
+
+        await storeData(selectedReminder.storageKey, stringDateTime);
+
+        setModalVisible(false);
+        setSelectedReminder(undefined);
+
+        await refreshReminders();
+      } else {
+        console.error('No reminder selected');
+      }
+
+      closeReminderModal();
+    },
+    [closeReminderModal, refreshReminders, selectedReminder, storeData],
+  );
+
+  const handleReminderReset = useCallback(
+    () => handleReminderConfirm(undefined),
+    [handleReminderConfirm],
+  );
+
+  useEffect(() => {
+    refreshReminders();
+    // eslint-disable-next-line
+  }, []);
+
   return (
     <View>
       <Text style={styles.title}>Recordatorios</Text>
 
-      <FlatList<TReminderItemProps>
+      <FlatList<TReminder>
         scrollEnabled={false}
-        data={[
-          {
-            title: 'Vencimiento extintor',
-            expirationDate: moment().add(1, 'days').toDate(),
-            updatedAt: new Date(),
-          },
-          {
-            title: 'Vencimiento SOAT',
-            expirationDate: moment().add(2, 'days').toDate(),
-            updatedAt: new Date(),
-          },
-          {
-            title: 'Vencimiento revisión técnica',
-            expirationDate: moment().add(24, 'days').toDate(),
-            updatedAt: new Date(),
-          },
-          {
-            title: 'Vencimiento licencia de conducir',
-            expirationDate: moment().add(30, 'days').toDate(),
-            updatedAt: new Date(),
-          },
-        ]}
+        data={reminders}
         renderItem={({item}) => (
           <ReminderItem {...item} onPress={handleReminderPress(item)} />
         )}
       />
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          Alert.alert('Modal has been closed.');
-
-          setModalVisible(!modalVisible);
-          setSelectedReminder(undefined);
-        }}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalText}>
-              Actualizar la fecha {selectedReminder?.title.toLowerCase()}
-            </Text>
-            <Pressable
-              style={[styles.button, styles.buttonClose]}
-              onPress={() => setModalVisible(!modalVisible)}>
-              <Text style={styles.textStyle}>Actualizar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <ModalEditReminder
+        open={modalVisible}
+        onClose={closeReminderModal}
+        reminder={selectedReminder}
+        onConfirm={handleReminderConfirm}
+        onReset={handleReminderReset}
+      />
     </View>
   );
 };
@@ -94,48 +113,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 24,
     marginBottom: 12,
-  },
-  // Modal
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 22,
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  button: {
-    borderRadius: 8,
-    padding: 8,
-    elevation: 2,
-  },
-  buttonOpen: {
-    backgroundColor: '#F194FF',
-  },
-  buttonClose: {
-    backgroundColor: '#2196F3',
-  },
-  textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'left',
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'left',
   },
 });
 

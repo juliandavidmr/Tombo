@@ -56,7 +56,7 @@ const CheckList: React.FC<TCheckListProps> = ({route}) => {
         const resultList: typeof currentChecklist = [];
         for (const item of currentChecklist) {
           const key: string = CHECK_LIST_KEY_STORAGE_BASE + item.id;
-          const checked: boolean = await getData(key);
+          const checked = !!(await getData<boolean>(key));
 
           resultList.push({
             ...item,
